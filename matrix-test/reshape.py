@@ -12,7 +12,7 @@ print(a)
 print("--------------------------------")
 print("1. reshape(-1):")
 print(a.reshape(-1)) 
-# Flater ut matrisen slik at den blir 1 x (antall elementer) matrise:Blir: [1, 2, 3, 4, 5, 6] 1 x 6 matrise
+# Flater ut "squeeze" matrisen slik at den blir 1 x (antall elementer) matrise:Blir: [1, 2, 3, 4, 5, 6] 1 x 6 matrise
 print("--------------------------------")
 
 print("2. reshape(-1, 3):")
@@ -22,12 +22,16 @@ print(a.reshape(-1, 3))
 
 print("--------------------------------")
 
-# For å transponerematrise m x n til n x m, reshape slik (n, m) eller (-1, m):
+# For å transponerematrise m x n til n x m, reshape slik (n, m), eller (-1, m) eller .T:
 # Eksempel:
 # Vi har 3 x 2 matrise, så for å transponere bruker vi: 
 # reshape(2, 3) eller reshape(-1, 3):
-print("3. reshape(2, 3) og reshape(-1, 3):")
+print("3. reshape(2, 3), reshape(-1, 3) og .T:")
 print(a.reshape(2, 3)) 
 print(a.reshape(-1, 3)) 
+print(a.T) 
 
+print("------------------")
+print("TESTER")
 
+print(torch.sigmoid(torch.tensor([-0.4])))
