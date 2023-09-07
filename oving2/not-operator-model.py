@@ -1,12 +1,10 @@
 import torch
 import matplotlib.pyplot as plt
 
+x_train = torch.tensor([[1.0], [0.0]])
+y_train = torch.tensor([[0.0], [1.0]])
 
-x_train = torch.tensor([[1.0], [0.0]]).reshape(-1,1)
-y_train = torch.tensor([[0.0], [1.0]]).reshape(-1,1)
-
-
-class NotOperatorModel:
+class NOT_Model:
     def __init__(self):
     # Model variables
         self.W = torch.rand((1,1), requires_grad=True)
@@ -14,14 +12,19 @@ class NotOperatorModel:
 
     def logits(self, x):
         return x @ self.W + self.b
+    
     # Predictor 
     def f(self, x):
         return torch.sigmoid(self.logits(x))
+    
     # Cross Entropy loss
     def loss(self, x, y):
         return torch.nn.functional.binary_cross_entropy_with_logits(self.logits(x), y)
+    
+    def accuracy(self, x, y):
+        return torch.mean(torch.eq(self.f(x).argmax(1),y.argmax(1)).float())
 
-model = NotOperatorModel()
+model = NOT_Model()
 
 
 # Optimize: adjust W and b to minimize loss using stochastic gradient descent
@@ -33,13 +36,20 @@ for epoch in range(10000):
     optimizer.zero_grad()  # Clear gradients for next step
 
 
-# Print model variables and loss
-print("W = %s, b = %s, loss = %s" % (model.W, model.b, model.loss(x_train, y_train)))
+# Print model variables, loss and accuracy
+print("W = %s, b = %s, loss = %s accuracy = %s" % (model.W, model.b, model.loss(x_train, y_train), model.accuracy(x_train, y_train)))
 
+# våre observasjoner
 plt.plot(x_train, y_train, 'o', label='$(x^{(i)},y^{(i)})$')
+
 plt.xlabel('x')
 plt.ylabel('y')
-x = torch.arange(0.0,1.0, 0.01).reshape(-1,1)
+
+# x skalaen: fra 0 til 1 med 0.01 steg
+x = torch.arange(0.0, 1.0, 0.01).reshape(-1,1)
+
+# y = model.f(x) vår predikator: sigmoid(x @ W + b)
 plt.plot(x, model.f(x).detach(), label='$\\hat y = f(x) = \sigma(xW + b)$')
+
 plt.legend()
 plt.show()
