@@ -1,5 +1,6 @@
 import torch
 import matplotlib.pyplot as plt
+import numpy as np
 
 x_train = torch.tensor([[0,0], [1,0], [0,1], [1,1]], dtype=torch.float)
 y_train = torch.tensor([[1], [1], [1], [0]], dtype=torch.float)
@@ -43,9 +44,31 @@ ax = fig.add_subplot(projection='3d')
 xt = x_train.t()[0]
 yt = x_train.t()[1]
 
-ax.scatter(xt.numpy(),yt.numpy(), y_train.numpy())
-ax.scatter(xt.numpy(),yt.numpy(), model.f(x_train).detach().numpy(), color="orange")
 
-ax.set_xlabel('x')
-ax.set_ylabel('y')
+# forbered data til riktig format så plottet blir fornøyd:
+# https://stackoverflow.com/questions/25370789/matplotlib-3d-wire-frame-plot-not-plotting-as-expected
+# inspirert av https://github.com/Her0elt/applied-machine-learning/blob/master/exercise%202/notebooks/NAND_operator.ipynb
+
+fig = plt.figure()
+plot3d = fig.add_subplot(111, projection='3d')
+plot3d.plot(xt, yt, y_train[:, 0], 'o')
+
+x, y = np.meshgrid(np.linspace(-0.25, 1.25, 10), np.linspace(-0.25, 1.25, 10))
+z = np.empty([10, 10])
+
+for i in range(0, x.shape[0]):
+    for j in range(0, x.shape[1]):
+        z[i, j] = model.f(torch.tensor([[(x[i, j]),  (y[i, j])]], dtype=torch.float))
+
+plot3d_f = plot3d.plot_wireframe(x, y, z, color="hotpink")
+
+# labels
+plot3d.set_xticks([0, 1])
+plot3d.set_yticks([0, 1])
+plot3d.set_zticks([0, 1])
+plot3d.set_xlabel("$x_1$")
+plot3d.set_ylabel("$x_2$")
+plot3d.set_zlabel("$y$")
+
+fig.canvas.draw()
 plt.show()

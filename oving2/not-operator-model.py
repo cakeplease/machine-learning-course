@@ -11,6 +11,10 @@ class NOT_Model:
         self.b = torch.rand((1,1), requires_grad=True)
 
     def logits(self, x):
+        # b (bias, intercept), forteller oss hva som er forventet gjennomsnittlig verdi
+        # av y når x er 0
+        # W (weight, slope), forteller oss hvor mye y øker, gjennomsnittlig,
+        # når vi øker x med én enhet
         return x @ self.W + self.b
     
     # Predictor 
