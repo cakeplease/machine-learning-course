@@ -1,1 +1,0 @@
-https://medium.com/convergeml/a-short-introduction-to-pytorch-using-logic-gates-in-perceptron-a8779fd93bd4

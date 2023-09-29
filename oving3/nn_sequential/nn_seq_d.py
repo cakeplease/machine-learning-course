@@ -39,6 +39,7 @@ class ConvolutionalNeuralNetworkModel(nn.Module):
             nn.Conv2d(32, 64, kernel_size=5, padding=2),
             nn.MaxPool2d(kernel_size=2),
             nn.Flatten(),
+            #ReLU - Forenkler modellen og dermed også optimaliseringen av modellen
             nn.ReLU(),
             nn.Linear(64 * 7 * 7, 1024),
             nn.Flatten(),
