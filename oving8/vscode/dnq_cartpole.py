@@ -1,4 +1,4 @@
-import gym
+import gymnasium as gym
 import random
 import numpy as np
 import tensorflow as tf
@@ -7,15 +7,15 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import RMSprop
 from tensorflow.keras.models import load_model
+import os
 
-MODEL_FILE_NAME = "dqncartpole.h5"
-env = gym.make('CartPole-v0')
+here = os.path.dirname(os.path.abspath(__file__))
+filename = os.path.join(here, 'dqncartpole.h5')
+MODEL_FILE_NAME = filename
+
+env = gym.make('CartPole-v1', render_mode='human')
 tf.random.set_seed(200)
 
-gpu = len(tf.config.list_physical_devices('GPU')) > 0
-print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
-# tf.debugging.set_log_device_placement(True)
-tf.test.is_built_with_cuda()
 state_space = env.observation_space.shape[0]
 env.observation_space.shape
 action_space = env.action_space.n
@@ -37,10 +37,8 @@ class DQNQLearnCartPoleSolver():
         self.gamma = 0.99
         self.train_start = 1000
         self.model = Sequential()
-        self.model.add(Dense(24, input_dim=input_shape,
-                       activation='relu', kernel_initializer='he_uniform'))
-        self.model.add(Dense(action_shape, activation="linear",
-                       kernel_initializer='he_uniform'))
+        self.model.add(Dense(24, input_dim=input_shape,activation='relu', kernel_initializer='he_uniform'))
+        self.model.add(Dense(action_shape, activation="linear", kernel_initializer='he_uniform'))
 
         self.model.compile(loss="mse", optimizer=RMSprop(
             learning_rate=0.00025), metrics=["accuracy"])
@@ -100,12 +98,14 @@ class DQNQLearnCartPoleSolver():
         scores = []
         for episode in range(self.episodes):
             done = False
-            state = self.preprocess_state(self.env.reset())
+            observation, info = self.env.reset()
+            state = self.preprocess_state(observation)
             step = 0
             while not done:
                 # self.env.render()
                 action = self.action(state)
-                next_state, reward, done, _ = self.env.step(action)
+                next_state, reward, done, truncated, info = self.env.step(action)
+                #next_state, reward, done, _ = self.env.step(action)
                 next_state = self.preprocess_state(next_state)
                 step += 1
                 self.remember(state, action, reward, next_state, done)
@@ -121,16 +121,22 @@ class DQNQLearnCartPoleSolver():
         # self.env.close()
         print('Finished training!')
 
-    def test(self):
+    def run(self):
         self.model = load_model(MODEL_FILE_NAME)
-        state = self.preprocess_state(self.env.reset())
+        observation, info = self.env.reset()
+        state = self.preprocess_state(observation)
         done = False
         score = 0
         while not done:
             self.env.render()
             action = np.argmax(self.model.predict(state))
-            next_state, reward, done, _ = self.env.step(action)
+            next_state, reward, done, truncated, info = self.env.step(action)
+            #next_state, reward, done, _ = self.env.step(action)
             state = self.preprocess_state(next_state)
             score += 1
         print(f"{score}  score")
         self.env.close()
+
+model = DQNQLearnCartPoleSolver(env, state_space, action_space, episodes=100)
+model.train()
+model.run()
