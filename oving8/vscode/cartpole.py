@@ -23,7 +23,6 @@ class QLearnCartPoleSolver():
         self.min_epsilon = min_epsilon
         self.episodes = episodes
         self.decay = decay
-        #self.epsilon_decay_rate = epsilon_decay_rate
         self.max_steps = max_steps
         self.batch_size = batch_size
         self.Q_Values = np.zeros(self.buckets + (self.action_size,))
