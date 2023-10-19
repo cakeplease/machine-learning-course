@@ -30,15 +30,27 @@ class QLearnCartPoleSolver():
         self.lower_bounds = [
             self.env.observation_space.low[2], -math.radians(50)]
 
+    # Epsilon (exploration rate) er verdien for sannsynligheten for en tilfeldig handling. Vår agent bruker det for å bestemme sitt neste trekk. For eks. om den skal
+    # utforske miljøet eller fokusere på belønningen. Vi bruker Epsilon greedy strategy for å balansere mellom utfoskning og belønning.
+    # Vi setter epsilon lik 1 og sakte senker den med decay verdien ettersom agenten har utforsket mer og mer.
     def get_epsilon(self, t):
         return max(self.min_epsilon, min(1., 1. - math.log10((t + 1) / self.decay)))
 
+    # Hvor mye vekt vi legger på gamle q-verdiene. alpha = 1 betyr at vi kalkulerer de nye q-verdiene og ikke tar de gamle verdiene i betraktning i det hele tatt
     def get_learning_rate(self, t):
         return max(self.min_lr, min(1., 1. - math.log10((t + 1) / self.decay)))
 
     def action(self, state):
-        return self.env.action_space.sample() if np.random.random() <= self.epsilon else np.argmax(self.Q_Values[state])
+        exploration_rate_threshold = np.random.random() # om agenten skal utforske eller fokusere på belønning
+        return self.env.action_space.sample() if exploration_rate_threshold <= self.epsilon else np.argmax(self.Q_Values[state])
 
+    # Oppdateringsregel for nye q-verdiene basert på Bellman-likning.
+    # Q-verdiene må oppdateres for å gjenspeile endringen og forventningen til agenten som nå har utforsket mer av miljøet.
+    # Nye q-verdien består av:
+    # -learning_rate: læringsrate
+    # -reward: belønning
+    # -discount: hvor mye verdsetter vi fremtidig belønning (1 = bryr oss ikke om tid, 0= ingen belønnning, 0.1-0.9 er bra)
+    # -max(Q_Values[state] - Q_Values[state][action]) fremtidig belønning, hva er neste oppnåelige belønningen.
     def updated_q_value(self, state, action, reward, new_state):
         return (self.learning_rate * (reward + self.discount * np.max(self.Q_Values[new_state]) - self.Q_Values[state][action]))
 
@@ -48,28 +60,31 @@ class QLearnCartPoleSolver():
         est.fit([self.lower_bounds, self.upper_bounds])
         return tuple(map(int, est.transform([state[2:]])[0]))
 
-
+    # Q-learning algorithm
     def train(self):
-        scores = []
+        rewards = []
+
         for episode in range(self.episodes):
             self.learning_rate = self.get_learning_rate(episode)
             self.epsilon = self.get_epsilon(episode)
             observation, info = self.env.reset()
             state = self.discretize_state(observation)
             done = False
-            reward_current_ep = 0
-            while not done:
+            reward_current_ep = 0 # reward within current episode
+
+            while not done: # do steps until episode is done
                 action = self.action(state)
-                next_state, reward, done, truncated, info = env.step(action)
-                next_state = self.discretize_state(next_state)
+                new_state, reward, done, truncated, info = env.step(action)
+                new_state = self.discretize_state(new_state)
                 self.Q_Values[state][action] += self.updated_q_value(
-                    state, action, reward, next_state)
-                state = next_state
+                    state, action, reward, new_state)
+                state = new_state
                 reward_current_ep += 1
-            scores.append(reward_current_ep)
-            print(f"{scores[episode]}  score for ep {episode+1}")
+            rewards.append(reward_current_ep)
+            print(f"{rewards[episode]}  score for ep {episode+1}")
+
         print('Finished training!')
-        return scores
+        return rewards
 
     def run(self):
         done = False
@@ -90,7 +105,7 @@ class QLearnCartPoleSolver():
 print("MODEL TRAIN")
 env = gym.make('CartPole-v1', render_mode="human")
 model = QLearnCartPoleSolver(env, episodes=100)
-scores = model.train()
+rewards = model.train()
 
 print("MODEL RUN")
 model.run()
