@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import KBinsDiscretizer
 
+
+#Cart pole env: https://gymnasium.farama.org/environments/classic_control/cart_pole/
 # import warnings filter
 from warnings import simplefilter
 # ignore all future warnings
@@ -21,7 +23,7 @@ class QLearnCartPoleSolver():
         self.min_epsilon = min_epsilon
         self.episodes = episodes
         self.decay = decay
-        self.epsilon_decay_rate = epsilon_decay_rate
+        #self.epsilon_decay_rate = epsilon_decay_rate
         self.max_steps = max_steps
         self.batch_size = batch_size
         self.Q_Values = np.zeros(self.buckets + (self.action_size,))
@@ -33,16 +35,24 @@ class QLearnCartPoleSolver():
     # Epsilon (exploration rate) er verdien for sannsynligheten for en tilfeldig handling. Vår agent bruker det for å bestemme sitt neste trekk. For eks. om den skal
     # utforske miljøet eller fokusere på belønningen. Vi bruker Epsilon greedy strategy for å balansere mellom utfoskning og belønning.
     # Vi setter epsilon lik 1 og sakte senker den med decay verdien ettersom agenten har utforsket mer og mer.
-    def get_epsilon(self, t):
-        return max(self.min_epsilon, min(1., 1. - math.log10((t + 1) / self.decay)))
+    def get_epsilon(self, episode):
+        return max(self.min_epsilon, min(1., 1. - math.log10((episode + 1) / self.decay)))
 
     # Hvor mye vekt vi legger på gamle q-verdiene. alpha = 1 betyr at vi kalkulerer de nye q-verdiene og ikke tar de gamle verdiene i betraktning i det hele tatt
-    def get_learning_rate(self, t):
-        return max(self.min_lr, min(1., 1. - math.log10((t + 1) / self.decay)))
+    def get_learning_rate(self, episode):
+        return max(self.min_lr, min(1., 1. - math.log10((episode + 1) / self.decay)))
 
+    # Bestem hvilken handling skal utføres. Exploration-exploitation trade-off. 
+    # Jo lavere epsilon-desto mindre tilfeldig handling, gir mening siden epsilon vil senke ettersom agenten har utforsket mer
     def action(self, state):
-        exploration_rate_threshold = np.random.random() # om agenten skal utforske eller fokusere på belønning
-        return self.env.action_space.sample() if exploration_rate_threshold <= self.epsilon else np.argmax(self.Q_Values[state])
+        exploration_rate_threshold = np.random.random() # tilfeldig float fra 0-1
+        exploration_rate = self.epsilon
+        if (exploration_rate_threshold <= exploration_rate):
+            action = self.env.action_space.sample()
+        else:
+            action = np.argmax(self.Q_Values[state])
+        
+        return action
 
     # Oppdateringsregel for nye q-verdiene basert på Bellman-likning.
     # Q-verdiene må oppdateres for å gjenspeile endringen og forventningen til agenten som nå har utforsket mer av miljøet.
@@ -54,9 +64,9 @@ class QLearnCartPoleSolver():
     def updated_q_value(self, state, action, reward, new_state):
         return (self.learning_rate * (reward + self.discount * np.max(self.Q_Values[new_state]) - self.Q_Values[state][action]))
 
+    # Bins continuous data into intervals with constant widths. Bearbeider data til forventet format.
     def discretize_state(self, state):
-        est = KBinsDiscretizer(n_bins=self.buckets,
-                               encode='ordinal', strategy='uniform')
+        est = KBinsDiscretizer(n_bins=self.buckets,encode='ordinal', strategy='uniform')
         est.fit([self.lower_bounds, self.upper_bounds])
         return tuple(map(int, est.transform([state[2:]])[0]))
 
@@ -72,18 +82,20 @@ class QLearnCartPoleSolver():
             done = False
             reward_current_ep = 0 # reward within current episode
 
-            while not done: # do steps until episode is done
+            # Do steps until one of these actions happen:
+            # -Pole Angle is greater than ±12°
+            # -Cart Position is greater than ±2.4 (center of the cart reaches the edge of the display)
+            while not done:
                 action = self.action(state)
                 new_state, reward, done, truncated, info = env.step(action)
                 new_state = self.discretize_state(new_state)
-                self.Q_Values[state][action] += self.updated_q_value(
-                    state, action, reward, new_state)
+                self.Q_Values[state][action] += self.updated_q_value(state, action, reward, new_state)
                 state = new_state
                 reward_current_ep += 1
             rewards.append(reward_current_ep)
-            print(f"{rewards[episode]}  score for ep {episode+1}")
+            print(f"Score for episode {episode+1}: {rewards[episode]}")
 
-        print('Finished training!')
+        print('Finished')
         return rewards
 
     def run(self):
@@ -104,7 +116,7 @@ class QLearnCartPoleSolver():
 
 print("MODEL TRAIN")
 env = gym.make('CartPole-v1', render_mode="human")
-model = QLearnCartPoleSolver(env, episodes=100)
+model = QLearnCartPoleSolver(env, episodes=100) #change episode number
 rewards = model.train()
 
 print("MODEL RUN")
